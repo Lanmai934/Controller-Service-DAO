@@ -1,5 +1,40 @@
 const database = require('../config/database');
 
+// 数据访问层日志函数
+const logDao = (methodName, params, result = null, error = null) => {
+  const now = new Date();
+  const timestamp = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  
+  console.log(`\n💾 === 数据访问层调试日志 ===`);
+  console.log(`⏰ 时间: ${timestamp}.${milliseconds}`);
+  console.log(`🗄️ DAO方法: ${methodName}`);
+  console.log(`📥 输入参数:`, params);
+  if (error) {
+    console.log(`❌ 执行结果: 数据库错误`);
+    console.log(`🚨 错误信息:`, error.message);
+  } else if (result !== null) {
+    console.log(`✅ 执行结果: 成功`);
+    if (Array.isArray(result)) {
+      console.log(`📊 返回数据: 数组，长度: ${result.length}`);
+      if (result.length > 0) {
+        console.log(`📄 首条记录:`, typeof result[0] === 'object' && result[0].password ? { ...result[0], password: '[已隐藏]' } : result[0]);
+      }
+    } else {
+      console.log(`📤 返回数据:`, typeof result === 'object' && result.password ? { ...result, password: '[已隐藏]' } : result);
+    }
+  }
+  console.log(`💾 ===========================\n`);
+};
+
 /**
  * 用户数据访问层 (DAO)
  * 负责与数据库的直接交互
@@ -15,9 +50,12 @@ class UserDao {
    */
   async findAll() {
     try {
+      logDao('findAll', {});
       const { rows } = await this.db.execute('SELECT * FROM users ORDER BY created_at DESC');
+      logDao('findAll', {}, rows);
       return rows;
     } catch (error) {
+      logDao('findAll', {}, null, error);
       console.error('获取所有用户失败:', error);
       throw new Error('获取用户列表失败');
     }
@@ -30,9 +68,13 @@ class UserDao {
    */
   async findById(id) {
     try {
+      logDao('findById', { id });
       const { rows } = await this.db.execute('SELECT * FROM users WHERE id = ?', [id]);
-      return rows[0] || null;
+      const result = rows[0] || null;
+      logDao('findById', { id }, result);
+      return result;
     } catch (error) {
+      logDao('findById', { id }, null, error);
       console.error('根据ID查找用户失败:', error);
       throw new Error('查找用户失败');
     }
@@ -45,9 +87,13 @@ class UserDao {
    */
   async findByEmail(email) {
     try {
+      logDao('findByEmail', { email });
       const { rows } = await this.db.execute('SELECT * FROM users WHERE email = ?', [email]);
-      return rows[0] || null;
+      const result = rows[0] || null;
+      logDao('findByEmail', { email }, result);
+      return result;
     } catch (error) {
+      logDao('findByEmail', { email }, null, error);
       console.error('根据邮箱查找用户失败:', error);
       throw new Error('查找用户失败');
     }
@@ -60,6 +106,7 @@ class UserDao {
    */
   async create(userData) {
     try {
+      logDao('create', { userData });
       const { name, email, age } = userData;
       const { rows } = await this.db.execute(
         'INSERT INTO users (name, email, age, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
@@ -70,8 +117,11 @@ class UserDao {
       const insertId = rows.insertId;
       
       // 返回创建的用户
-      return await this.findById(insertId);
+      const newUser = await this.findById(insertId);
+      logDao('create', { userData }, newUser);
+      return newUser;
     } catch (error) {
+      logDao('create', { userData }, null, error);
       console.error('创建用户失败:', error);
       throw new Error('创建用户失败');
     }
@@ -85,6 +135,7 @@ class UserDao {
    */
   async update(id, userData) {
     try {
+      logDao('update', { id, userData });
       const { name, email, age } = userData;
       const { rows } = await this.db.execute(
         'UPDATE users SET name = ?, email = ?, age = ?, updated_at = NOW() WHERE id = ?',
@@ -93,12 +144,16 @@ class UserDao {
       
       // 检查是否有行被更新
       if (rows.affectedRows === 0) {
+        logDao('update', { id, userData }, null);
         return null;
       }
       
       // 返回更新后的用户
-      return await this.findById(id);
+      const updatedUser = await this.findById(id);
+      logDao('update', { id, userData }, updatedUser);
+      return updatedUser;
     } catch (error) {
+      logDao('update', { id, userData }, null, error);
       console.error('更新用户失败:', error);
       throw new Error('更新用户失败');
     }
@@ -111,9 +166,13 @@ class UserDao {
    */
   async delete(id) {
     try {
+      logDao('delete', { id });
       const { rows } = await this.db.execute('DELETE FROM users WHERE id = ?', [id]);
-      return rows.affectedRows > 0;
+      const success = rows.affectedRows > 0;
+      logDao('delete', { id }, success);
+      return success;
     } catch (error) {
+      logDao('delete', { id }, null, error);
       console.error('删除用户失败:', error);
       throw new Error('删除用户失败');
     }

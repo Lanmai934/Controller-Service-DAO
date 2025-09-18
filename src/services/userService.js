@@ -1,5 +1,35 @@
 const userDao = require('../dao/userDao');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
+const config = require('../config/config');
+
+// 服务层日志函数
+const logService = (methodName, params, result = null, error = null) => {
+  const now = new Date();
+  const timestamp = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  
+  console.log(`\n🔧 === 服务层调试日志 ===`);
+  console.log(`⏰ 时间: ${timestamp}.${milliseconds}`);
+  console.log(`📋 服务方法: ${methodName}`);
+  console.log(`📥 输入参数:`, params);
+  if (error) {
+    console.log(`❌ 执行结果: 错误`);
+    console.log(`🚨 错误信息:`, error.message);
+  } else if (result !== null) {
+    console.log(`✅ 执行结果: 成功`);
+    console.log(`📤 返回数据:`, typeof result === 'object' && result.password ? { ...result, password: '[已隐藏]' } : result);
+  }
+  console.log(`🔧 ========================\n`);
+};
 
 /**
  * 用户服务层
@@ -11,9 +41,12 @@ class UserService {
    */
   async getAllUsers() {
     try {
+      logService('getAllUsers', {});
       const users = await userDao.findAll();
+      logService('getAllUsers', {}, users);
       return users;
     } catch (error) {
+      logService('getAllUsers', {}, null, error);
       throw new Error(`获取用户列表失败: ${error.message}`);
     }
   }
@@ -23,13 +56,20 @@ class UserService {
    */
   async getUserById(id) {
     try {
+      logService('getUserById', { id });
       if (!id) {
-        throw new Error('用户ID不能为空');
+        const error = new Error('用户ID不能为空');
+        logService('getUserById', { id }, null, error);
+        throw error;
       }
 
       const user = await userDao.findById(id);
+      logService('getUserById', { id }, user);
       return user;
     } catch (error) {
+      if (!error.message.includes('用户ID不能为空')) {
+        logService('getUserById', { id }, null, error);
+      }
       throw new Error(`获取用户信息失败: ${error.message}`);
     }
   }
@@ -39,13 +79,17 @@ class UserService {
    */
   async createUser(userData) {
     try {
+      logService('createUser', { userData: { ...userData, password: userData.password ? '[已隐藏]' : undefined } });
+      
       // 数据验证
       this.validateUserData(userData);
 
       // 检查邮箱是否已存在
       const existingUser = await userDao.findByEmail(userData.email);
       if (existingUser) {
-        throw new Error('邮箱已被注册');
+        const error = new Error('邮箱已被注册');
+        logService('createUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+        throw error;
       }
 
       // 创建用户对象
@@ -53,8 +97,12 @@ class UserService {
       
       // 保存到数据库
       const newUser = await userDao.create(user);
+      logService('createUser', { userData: { ...userData, password: '[已隐藏]' } }, newUser);
       return newUser;
     } catch (error) {
+      if (!error.message.includes('邮箱已被注册')) {
+        logService('createUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+      }
       throw new Error(`创建用户失败: ${error.message}`);
     }
   }
@@ -64,13 +112,18 @@ class UserService {
    */
   async updateUser(id, userData) {
     try {
+      logService('updateUser', { id, userData: { ...userData, password: userData.password ? '[已隐藏]' : undefined } });
+      
       if (!id) {
-        throw new Error('用户ID不能为空');
+        const error = new Error('用户ID不能为空');
+        logService('updateUser', { id, userData: { ...userData, password: '[已隐藏]' } }, null, error);
+        throw error;
       }
 
       // 检查用户是否存在
       const existingUser = await userDao.findById(id);
       if (!existingUser) {
+        logService('updateUser', { id, userData: { ...userData, password: '[已隐藏]' } }, null);
         return null;
       }
 
@@ -78,14 +131,20 @@ class UserService {
       if (userData.email && userData.email !== existingUser.email) {
         const emailExists = await userDao.findByEmail(userData.email);
         if (emailExists) {
-          throw new Error('邮箱已被其他用户使用');
+          const error = new Error('邮箱已被其他用户使用');
+          logService('updateUser', { id, userData: { ...userData, password: '[已隐藏]' } }, null, error);
+          throw error;
         }
       }
 
       // 更新用户信息
       const updatedUser = await userDao.update(id, userData);
+      logService('updateUser', { id, userData: { ...userData, password: '[已隐藏]' } }, updatedUser);
       return updatedUser;
     } catch (error) {
+      if (!error.message.includes('用户ID不能为空') && !error.message.includes('邮箱已被其他用户使用')) {
+        logService('updateUser', { id, userData: { ...userData, password: '[已隐藏]' } }, null, error);
+      }
       throw new Error(`更新用户信息失败: ${error.message}`);
     }
   }
@@ -95,20 +154,29 @@ class UserService {
    */
   async deleteUser(id) {
     try {
+      logService('deleteUser', { id });
+      
       if (!id) {
-        throw new Error('用户ID不能为空');
+        const error = new Error('用户ID不能为空');
+        logService('deleteUser', { id }, null, error);
+        throw error;
       }
 
       // 检查用户是否存在
       const existingUser = await userDao.findById(id);
       if (!existingUser) {
+        logService('deleteUser', { id }, false);
         return false;
       }
 
       // 删除用户
       await userDao.delete(id);
+      logService('deleteUser', { id }, true);
       return true;
     } catch (error) {
+      if (!error.message.includes('用户ID不能为空')) {
+        logService('deleteUser', { id }, null, error);
+      }
       throw new Error(`删除用户失败: ${error.message}`);
     }
   }
@@ -126,6 +194,107 @@ class UserService {
       return user;
     } catch (error) {
       throw new Error(`查找用户失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 用户注册
+   */
+  async registerUser(userData) {
+    try {
+      logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } });
+      
+      // 验证必填字段
+      if (!userData.password) {
+        const error = new Error('密码不能为空');
+        logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+        throw error;
+      }
+
+      // 数据验证
+      this.validateUserData(userData);
+
+      // 检查邮箱是否已存在
+      const existingUser = await userDao.findByEmail(userData.email);
+      if (existingUser) {
+        const error = new Error('邮箱已被注册');
+        logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+        throw error;
+      }
+
+      // 创建用户对象并加密密码
+      const user = new User(userData);
+      await user.hashPassword();
+      
+      // 保存到数据库
+      const newUser = await userDao.create(user);
+      
+      // 返回用户信息（不包含密码）
+      const { password, ...userWithoutPassword } = newUser;
+      logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, userWithoutPassword);
+      return userWithoutPassword;
+    } catch (error) {
+      if (!error.message.includes('密码不能为空') && !error.message.includes('邮箱已被注册')) {
+        logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+      }
+      throw new Error(`用户注册失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 用户登录
+   */
+  async loginUser(email, password) {
+    try {
+      logService('loginUser', { email, password: '[已隐藏]' });
+      
+      if (!email || !password) {
+        const error = new Error('邮箱和密码不能为空');
+        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+        throw error;
+      }
+
+      // 查找用户
+      const user = await userDao.findByEmail(email);
+      if (!user) {
+        const error = new Error('用户不存在或密码错误');
+        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+        throw error;
+      }
+
+      // 验证密码
+      const userModel = new User(user);
+      const isPasswordValid = await userModel.validatePassword(password);
+      if (!isPasswordValid) {
+        const error = new Error('用户不存在或密码错误');
+        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+        throw error;
+      }
+
+      // 生成JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          email: user.email,
+          name: user.name 
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn }
+      );
+
+      // 返回用户信息和token（不包含密码）
+      const { password: userPassword, ...userWithoutPassword } = user;
+      const result = {
+        user: userWithoutPassword,
+        token
+      };
+      logService('loginUser', { email, password: '[已隐藏]' }, { user: userWithoutPassword, token: '[JWT令牌已生成]' });
+      return result;
+    } catch (error) {
+      if (!error.message.includes('邮箱和密码不能为空') && !error.message.includes('用户不存在或密码错误')) {
+        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+      }
+      throw new Error(`登录失败: ${error.message}`);
     }
   }
 

@@ -1,5 +1,30 @@
 const userService = require('../services/userService');
 
+// 请求日志中间件
+const logRequest = (req, method) => {
+  const now = new Date();
+  const timestamp = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  
+  console.log(`\n🌐 === API调试日志 ===`);
+  console.log(`⏰ 时间: ${timestamp}.${milliseconds}`);
+  console.log(`🔗 方法: ${req.method}`);
+  console.log(`📍 路径: ${req.path}`);
+  console.log(`🎯 控制器方法: ${method}`);
+  console.log(`📋 请求参数:`, req.params);
+  console.log(`🔍 查询参数:`, req.query);
+  console.log(`📦 请求体:`, req.body);
+  console.log(`🌐 ==================\n`);
+};
+
 /**
  * 用户控制器
  * 负责处理HTTP请求和响应，调用Service层处理业务逻辑
@@ -9,6 +34,7 @@ class UserController {
    * 获取所有用户
    */
   async getAllUsers(req, res) {
+    logRequest(req, 'getAllUsers');
     try {
       const users = await userService.getAllUsers();
       res.json({
@@ -29,6 +55,7 @@ class UserController {
    * 根据ID获取用户
    */
   async getUserById(req, res) {
+    logRequest(req, 'getUserById');
     try {
       const { id } = req.params;
       const user = await userService.getUserById(id);
@@ -58,6 +85,7 @@ class UserController {
    * 创建新用户
    */
   async createUser(req, res) {
+    logRequest(req, 'createUser');
     try {
       const userData = req.body;
       const newUser = await userService.createUser(userData);
@@ -80,6 +108,7 @@ class UserController {
    * 更新用户信息
    */
   async updateUser(req, res) {
+    logRequest(req, 'updateUser');
     try {
       const { id } = req.params;
       const userData = req.body;
@@ -110,6 +139,7 @@ class UserController {
    * 删除用户
    */
   async deleteUser(req, res) {
+    logRequest(req, 'deleteUser');
     try {
       const { id } = req.params;
       const deleted = await userService.deleteUser(id);
@@ -129,6 +159,52 @@ class UserController {
       res.status(500).json({
         success: false,
         message: '删除用户失败',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 用户注册
+   */
+  async register(req, res) {
+    logRequest(req, 'register');
+    try {
+      const userData = req.body;
+      const newUser = await userService.registerUser(userData);
+      
+      res.status(201).json({
+        success: true,
+        data: newUser,
+        message: '用户注册成功'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: '用户注册失败',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * 用户登录
+   */
+  async login(req, res) {
+    logRequest(req, 'login');
+    try {
+      const { email, password } = req.body;
+      const result = await userService.loginUser(email, password);
+      
+      res.json({
+        success: true,
+        data: result,
+        message: '登录成功'
+      });
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        message: '登录失败',
         error: error.message
       });
     }

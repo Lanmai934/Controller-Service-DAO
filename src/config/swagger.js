@@ -123,6 +123,79 @@ const swaggerDefinition = {
           }
         }
       },
+      RegisterInput: {
+        type: 'object',
+        required: ['name', 'email', 'password'],
+        properties: {
+          name: {
+            type: 'string',
+            description: '用户姓名',
+            minLength: 2,
+            maxLength: 50,
+            example: '张三'
+          },
+          email: {
+            type: 'string',
+            format: 'email',
+            description: '用户邮箱',
+            example: 'zhangsan@example.com'
+          },
+          password: {
+            type: 'string',
+            description: '用户密码',
+            minLength: 6,
+            maxLength: 50,
+            example: '123456'
+          },
+          age: {
+            type: 'integer',
+            minimum: 0,
+            maximum: 150,
+            description: '用户年龄',
+            example: 25
+          },
+          phone: {
+            type: 'string',
+            description: '手机号码',
+            example: '13800138000'
+          },
+          address: {
+            type: 'string',
+            description: '用户地址',
+            example: '北京市朝阳区'
+          }
+        }
+      },
+      LoginInput: {
+        type: 'object',
+        required: ['email', 'password'],
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            description: '用户邮箱',
+            example: 'zhangsan@example.com'
+          },
+          password: {
+            type: 'string',
+            description: '用户密码',
+            example: '123456'
+          }
+        }
+      },
+      LoginResponse: {
+        type: 'object',
+        properties: {
+          user: {
+            $ref: '#/components/schemas/User'
+          },
+          token: {
+            type: 'string',
+            description: 'JWT访问令牌',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+          }
+        }
+      },
       ApiResponse: {
         type: 'object',
         properties: {
