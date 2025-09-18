@@ -4,6 +4,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
 
+// 导入Swagger配置
+const { swaggerSpec, swaggerUi } = require('./src/config/swagger');
+
 // 导入路由
 const userRoutes = require('./src/routes/userRoutes');
 
@@ -17,6 +20,16 @@ app.use(morgan('combined')); // 日志中间件
 app.use(express.json()); // 解析JSON请求体
 app.use(express.urlencoded({ extended: true })); // 解析URL编码请求体
 
+// Swagger文档路由
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Controller-Service-DAO API文档',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true
+  }
+}));
+
 // 路由配置
 app.use('/api/users', userRoutes);
 
@@ -25,7 +38,11 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Express 三层架构 API 服务',
     version: '1.0.0',
-    architecture: 'Controller-Service-DAO'
+    architecture: 'Controller-Service-DAO',
+    documentation: {
+      swagger: '/api-docs',
+      description: '访问 /api-docs 查看完整的API文档和测试界面'
+    }
   });
 });
 
