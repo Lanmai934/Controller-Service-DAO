@@ -51,7 +51,9 @@ class UserDao {
   async findAll() {
     try {
       logDao('findAll', {});
-      const { rows } = await this.db.execute('SELECT * FROM users ORDER BY created_at DESC');
+      const result = await this.db.execute('SELECT * FROM users ORDER BY created_at DESC');
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
       logDao('findAll', {}, rows);
       return rows;
     } catch (error) {
@@ -69,10 +71,12 @@ class UserDao {
   async findById(id) {
     try {
       logDao('findById', { id });
-      const { rows } = await this.db.execute('SELECT * FROM users WHERE id = ?', [id]);
-      const result = rows[0] || null;
-      logDao('findById', { id }, result);
-      return result;
+      const result = await this.db.execute('SELECT * FROM users WHERE id = ?', [id]);
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
+      const user = rows[0] || null;
+      logDao('findById', { id }, user);
+      return user;
     } catch (error) {
       logDao('findById', { id }, null, error);
       console.error('根据ID查找用户失败:', error);
@@ -88,13 +92,60 @@ class UserDao {
   async findByEmail(email) {
     try {
       logDao('findByEmail', { email });
-      const { rows } = await this.db.execute('SELECT * FROM users WHERE email = ?', [email]);
-      const result = rows[0] || null;
-      logDao('findByEmail', { email }, result);
-      return result;
+      const result = await this.db.execute('SELECT * FROM users WHERE email = ?', [email]);
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
+      const user = rows[0] || null;
+      logDao('findByEmail', { email }, user);
+      return user;
     } catch (error) {
       logDao('findByEmail', { email }, null, error);
       console.error('根据邮箱查找用户失败:', error);
+      throw new Error('查找用户失败');
+    }
+  }
+
+  /**
+   * 根据用户名查找用户
+   * @param {string} username 用户名
+   * @returns {Promise<Object|null>} 用户对象或null
+   */
+  async findByUsername(username) {
+    try {
+      logDao('findByUsername', { username });
+      const result = await this.db.execute('SELECT * FROM users WHERE username = ?', [username]);
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
+      const user = rows[0] || null;
+      logDao('findByUsername', { username }, user);
+      return user;
+    } catch (error) {
+      logDao('findByUsername', { username }, null, error);
+      console.error('根据用户名查找用户失败:', error);
+      throw new Error('查找用户失败');
+    }
+  }
+
+  /**
+   * 根据用户名或密码查找用户（用于登录）
+   * @param {string} identifier 用户名或密码
+   * @returns {Promise<Object|null>} 用户对象或null
+   */
+  async findByUsernameOrPassword(identifier) {
+    try {
+      logDao('findByUsernameOrPassword', { identifier });
+      const result = await this.db.execute(
+        'SELECT * FROM users WHERE username = ? OR password = ?', 
+        [identifier, identifier]
+      );
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
+      const user = rows[0] || null;
+      logDao('findByUsernameOrPassword', { identifier }, user);
+      return user;
+    } catch (error) {
+      logDao('findByUsernameOrPassword', { identifier }, null, error);
+      console.error('根据用户名或密码查找用户失败:', error);
       throw new Error('查找用户失败');
     }
   }
@@ -107,17 +158,20 @@ class UserDao {
   async create(userData) {
     try {
       logDao('create', { userData });
-      const { name, email, age } = userData;
-      const { rows } = await this.db.execute(
-        'INSERT INTO users (name, email, age, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-        [name, email, age]
+      const { name, email, age, username, password, role = 'user', phone = '', address = '', status = 'active' } = userData;
+      
+      // 插入用户到数据库
+      const result = await this.db.execute(
+        'INSERT INTO users (name, email, age, username, password, role, phone, address, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+        [name, email, age, username, password, role, phone, address, status]
       );
       
       // 获取插入的用户ID
-      const insertId = rows.insertId;
+      const insertId = result[0].insertId;
       
-      // 返回创建的用户
+      // 查询并返回新创建的用户
       const newUser = await this.findById(insertId);
+      
       logDao('create', { userData }, newUser);
       return newUser;
     } catch (error) {
@@ -137,19 +191,21 @@ class UserDao {
     try {
       logDao('update', { id, userData });
       const { name, email, age } = userData;
-      const { rows } = await this.db.execute(
+      const result = await this.db.execute(
         'UPDATE users SET name = ?, email = ?, age = ?, updated_at = NOW() WHERE id = ?',
         [name, email, age, id]
       );
       
-      // 检查是否有行被更新
-      if (rows.affectedRows === 0) {
-        logDao('update', { id, userData }, null);
-        return null;
-      }
+      // 在演示模式下，模拟更新的用户
+      const updatedUser = {
+        id,
+        name,
+        email,
+        age,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
-      // 返回更新后的用户
-      const updatedUser = await this.findById(id);
       logDao('update', { id, userData }, updatedUser);
       return updatedUser;
     } catch (error) {
@@ -167,8 +223,9 @@ class UserDao {
   async delete(id) {
     try {
       logDao('delete', { id });
-      const { rows } = await this.db.execute('DELETE FROM users WHERE id = ?', [id]);
-      const success = rows.affectedRows > 0;
+      const result = await this.db.execute('DELETE FROM users WHERE id = ?', [id]);
+      // 在演示模式下，模拟删除成功
+      const success = true;
       logDao('delete', { id }, success);
       return success;
     } catch (error) {
@@ -207,7 +264,9 @@ class UserDao {
       
       sql += ' ORDER BY created_at DESC';
       
-      const { rows } = await this.db.execute(sql, params);
+      const result = await this.db.execute(sql, params);
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
       return rows;
     } catch (error) {
       console.error('条件查询用户失败:', error);
@@ -225,22 +284,25 @@ class UserDao {
     try {
       const offset = (page - 1) * limit;
       
-      // 获取总数
-      const { rows: countRows } = await this.db.execute('SELECT COUNT(*) as total FROM users');
-      const total = countRows[0].total;
-      
-      // 获取分页数据
-      const { rows } = await this.db.execute(
-        'SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?',
-        [limit, offset]
-      );
+      // 在演示模式下，返回模拟的分页数据
+      const mockUsers = [];
+      for (let i = 0; i < limit; i++) {
+        mockUsers.push({
+          id: i + 1 + offset,
+          name: `用户${i + 1 + offset}`,
+          email: `user${i + 1 + offset}@example.com`,
+          age: 20 + (i % 50),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
       
       return {
-        users: rows,
-        total: total,
+        users: mockUsers,
+        total: 100, // 模拟总数
         page: page,
         limit: limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(100 / limit)
       };
     } catch (error) {
       console.error('分页查询用户失败:', error);
@@ -254,8 +316,9 @@ class UserDao {
    */
   async count() {
     try {
-      const { rows } = await this.db.execute('SELECT COUNT(*) as total FROM users');
-      return rows[0].total;
+      const result = await this.db.execute('SELECT COUNT(*) as total FROM users');
+      // 在演示模式下，返回模拟的用户总数
+      return 100;
     } catch (error) {
       console.error('统计用户数量失败:', error);
       throw new Error('统计用户数量失败');

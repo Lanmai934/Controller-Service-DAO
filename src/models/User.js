@@ -1,7 +1,5 @@
-const bcrypt = require('bcrypt');
-
 /**
- * 用户数据模型
+ * 用户数据模型（演示版本）
  * 定义用户实体的结构和验证规则
  */
 class User {
@@ -9,11 +7,13 @@ class User {
     this.id = data.id || null;
     this.name = data.name || '';
     this.email = data.email || '';
-    this.password = data.password || ''; // 密码字段
+    this.username = data.username || '';
+    this.password = data.password || '';
+    this.role = data.role || 'user';
     this.age = data.age || null;
     this.phone = data.phone || '';
     this.address = data.address || '';
-    this.status = data.status || 'active'; // active, inactive, deleted
+    this.status = data.status || 'active';
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }
@@ -24,51 +24,29 @@ class User {
   validate() {
     const errors = [];
 
-    // 验证姓名
-    if (!this.name || this.name.trim() === '') {
+    if (!this.name || this.name.trim().length === 0) {
       errors.push('姓名不能为空');
-    } else if (this.name.length < 2 || this.name.length > 50) {
-      errors.push('姓名长度必须在2-50个字符之间');
     }
 
-    // 验证邮箱
-    if (!this.email || this.email.trim() === '') {
-      errors.push('邮箱不能为空');
-    } else if (!this.isValidEmail(this.email)) {
+    if (!this.email || !this.isValidEmail(this.email)) {
       errors.push('邮箱格式不正确');
     }
 
-    // 验证密码（仅在创建新用户时验证原始密码）
-    if (this.password && !this.isPasswordHashed(this.password)) {
-      if (this.password.length < 6) {
-        errors.push('密码长度不能少于6位');
-      }
-      if (this.password.length > 50) {
-        errors.push('密码长度不能超过50位');
-      }
+    if (!this.username || this.username.trim().length < 3) {
+      errors.push('用户名至少需要3个字符');
     }
 
-    // 验证年龄
-    if (this.age !== null && this.age !== undefined) {
-      if (!Number.isInteger(this.age) || this.age < 0 || this.age > 150) {
-        errors.push('年龄必须是0-150之间的整数');
-      }
+    if (!this.password || this.password.length < 6) {
+      errors.push('密码至少需要6个字符');
     }
 
-    // 验证手机号
     if (this.phone && !this.isValidPhone(this.phone)) {
       errors.push('手机号格式不正确');
     }
 
-    // 验证状态
-    const validStatuses = ['active', 'inactive', 'deleted'];
-    if (!validStatuses.includes(this.status)) {
-      errors.push('用户状态无效');
-    }
-
     return {
       isValid: errors.length === 0,
-      errors: errors
+      errors
     };
   }
 
@@ -89,41 +67,39 @@ class User {
   }
 
   /**
-   * 检查密码是否已经被哈希加密
+   * 验证用户名格式
    */
-  isPasswordHashed(password) {
-    // bcrypt哈希值通常以$2b$开头，长度为60字符
-    return password && password.startsWith('$2b$') && password.length === 60;
+  isValidUsername(username) {
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    return usernameRegex.test(username);
   }
 
   /**
-   * 加密密码
+   * 密码哈希（演示版本）
    */
   async hashPassword() {
-    if (this.password && !this.isPasswordHashed(this.password)) {
-      const saltRounds = 10;
-      this.password = await bcrypt.hash(this.password, saltRounds);
-    }
+    // 演示版本：简单的密码处理
+    this.password = `hashed_${this.password}`;
   }
 
   /**
-   * 验证密码
+   * 验证密码（演示版本）
    */
   async validatePassword(plainPassword) {
-    if (!this.password || !plainPassword) {
-      return false;
-    }
-    return await bcrypt.compare(plainPassword, this.password);
+    // 演示版本：简单的密码验证
+    return this.password === `hashed_${plainPassword}`;
   }
 
   /**
-   * 转换为JSON对象（用于API响应）
+   * 转换为JSON格式（隐藏敏感信息）
    */
   toJSON() {
     return {
       id: this.id,
       name: this.name,
       email: this.email,
+      username: this.username,
+      role: this.role,
       age: this.age,
       phone: this.phone,
       address: this.address,
@@ -134,12 +110,16 @@ class User {
   }
 
   /**
-   * 转换为数据库存储格式
+   * 转换为数据库格式
    */
   toDatabase() {
     return {
+      id: this.id,
       name: this.name,
       email: this.email,
+      username: this.username,
+      password: this.password,
+      role: this.role,
       age: this.age,
       phone: this.phone,
       address: this.address,
@@ -157,6 +137,9 @@ class User {
       id: dbData.id,
       name: dbData.name,
       email: dbData.email,
+      username: dbData.username,
+      password: dbData.password,
+      role: dbData.role,
       age: dbData.age,
       phone: dbData.phone,
       address: dbData.address,
@@ -167,25 +150,22 @@ class User {
   }
 
   /**
-   * 更新用户信息
+   * 更新用户数据
    */
   update(data) {
-    if (data.name !== undefined) this.name = data.name;
-    if (data.email !== undefined) this.email = data.email;
-    if (data.age !== undefined) this.age = data.age;
-    if (data.phone !== undefined) this.phone = data.phone;
-    if (data.address !== undefined) this.address = data.address;
-    if (data.status !== undefined) this.status = data.status;
-    
+    Object.keys(data).forEach(key => {
+      if (this.hasOwnProperty(key) && key !== 'id' && key !== 'createdAt') {
+        this[key] = data[key];
+      }
+    });
     this.updatedAt = new Date();
-    return this;
   }
 
   /**
-   * 获取用户显示名称
+   * 获取显示名称
    */
   getDisplayName() {
-    return this.name || this.email.split('@')[0];
+    return this.name || this.username || this.email;
   }
 
   /**
@@ -201,7 +181,6 @@ class User {
   activate() {
     this.status = 'active';
     this.updatedAt = new Date();
-    return this;
   }
 
   /**
@@ -210,7 +189,6 @@ class User {
   deactivate() {
     this.status = 'inactive';
     this.updatedAt = new Date();
-    return this;
   }
 
   /**
@@ -219,7 +197,27 @@ class User {
   softDelete() {
     this.status = 'deleted';
     this.updatedAt = new Date();
-    return this;
+  }
+
+  /**
+   * 检查是否为超级管理员
+   */
+  isSuperAdmin() {
+    return this.role === 'super_admin';
+  }
+
+  /**
+   * 检查是否为管理员
+   */
+  isAdmin() {
+    return this.role === 'admin' || this.role === 'super_admin';
+  }
+
+  /**
+   * 检查是否为普通用户
+   */
+  isUser() {
+    return this.role === 'user';
   }
 }
 

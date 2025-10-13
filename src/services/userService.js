@@ -215,7 +215,15 @@ class UserService {
       this.validateUserData(userData);
 
       // 检查邮箱是否已存在
-      const existingUser = await userDao.findByEmail(userData.email);
+      // 如果提供了邮箱，才进行唯一性校验
+      if (userData.email) {
+        const existingUser = await userDao.findByEmail(userData.email);
+        if (existingUser) {
+          const error = new Error('邮箱已被注册');
+          logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
+          throw error;
+        }
+      }
       if (existingUser) {
         const error = new Error('邮箱已被注册');
         logService('registerUser', { userData: { ...userData, password: '[已隐藏]' } }, null, error);
@@ -242,23 +250,23 @@ class UserService {
   }
 
   /**
-   * 用户登录
+   * 用户登录（支持用户名或邮箱）
    */
-  async loginUser(email, password) {
+  async loginUser(identifier, password) {
     try {
-      logService('loginUser', { email, password: '[已隐藏]' });
+      logService('loginUser', { identifier, password: '[已隐藏]' });
       
-      if (!email || !password) {
-        const error = new Error('邮箱和密码不能为空');
-        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+      if (!identifier || !password) {
+        const error = new Error('用户名和密码不能为空');
+        logService('loginUser', { identifier, password: '[已隐藏]' }, null, error);
         throw error;
       }
 
-      // 查找用户
-      const user = await userDao.findByEmail(email);
+      // 查找用户（支持用户名）
+      const user = await userDao.findByUsernameOrEmail(identifier);
       if (!user) {
         const error = new Error('用户不存在或密码错误');
-        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+        logService('loginUser', { identifier, password: '[已隐藏]' }, null, error);
         throw error;
       }
 

@@ -1,5 +1,7 @@
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Swagger配置
@@ -123,79 +125,6 @@ const swaggerDefinition = {
           }
         }
       },
-      RegisterInput: {
-        type: 'object',
-        required: ['name', 'email', 'password'],
-        properties: {
-          name: {
-            type: 'string',
-            description: '用户姓名',
-            minLength: 2,
-            maxLength: 50,
-            example: '张三'
-          },
-          email: {
-            type: 'string',
-            format: 'email',
-            description: '用户邮箱',
-            example: 'zhangsan@example.com'
-          },
-          password: {
-            type: 'string',
-            description: '用户密码',
-            minLength: 6,
-            maxLength: 50,
-            example: '123456'
-          },
-          age: {
-            type: 'integer',
-            minimum: 0,
-            maximum: 150,
-            description: '用户年龄',
-            example: 25
-          },
-          phone: {
-            type: 'string',
-            description: '手机号码',
-            example: '13800138000'
-          },
-          address: {
-            type: 'string',
-            description: '用户地址',
-            example: '北京市朝阳区'
-          }
-        }
-      },
-      LoginInput: {
-        type: 'object',
-        required: ['email', 'password'],
-        properties: {
-          email: {
-            type: 'string',
-            format: 'email',
-            description: '用户邮箱',
-            example: 'zhangsan@example.com'
-          },
-          password: {
-            type: 'string',
-            description: '用户密码',
-            example: '123456'
-          }
-        }
-      },
-      LoginResponse: {
-        type: 'object',
-        properties: {
-          user: {
-            $ref: '#/components/schemas/User'
-          },
-          token: {
-            type: 'string',
-            description: 'JWT访问令牌',
-            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-          }
-        }
-      },
       ApiResponse: {
         type: 'object',
         properties: {
@@ -252,7 +181,43 @@ const options = {
 // 生成Swagger规范
 const swaggerSpec = swaggerJSDoc(options);
 
+/**
+ * 自动生成并导出OpenAPI规范文件
+ * 用于前端SDK自动生成和其他工具集成
+ */
+function generateOpenApiFile() {
+  try {
+    const outputPath = path.join(process.cwd(), 'openapi.json');
+    const openApiContent = JSON.stringify(swaggerSpec, null, 2);
+    
+    fs.writeFileSync(outputPath, openApiContent, 'utf8');
+    console.log(`✅ OpenAPI规范已生成: ${outputPath}`);
+    
+    // 同时生成到docs目录，便于版本管理
+    const docsPath = path.join(process.cwd(), 'docs', 'openapi.json');
+    const docsDir = path.dirname(docsPath);
+    
+    if (!fs.existsSync(docsDir)) {
+      fs.mkdirSync(docsDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(docsPath, openApiContent, 'utf8');
+    console.log(`📚 OpenAPI文档已保存: ${docsPath}`);
+    
+    return outputPath;
+  } catch (error) {
+    console.error('❌ 生成OpenAPI文件失败:', error.message);
+    throw error;
+  }
+}
+
+// 在模块加载时自动生成OpenAPI文件
+if (process.env.NODE_ENV !== 'test') {
+  generateOpenApiFile();
+}
+
 module.exports = {
   swaggerSpec,
-  swaggerUi
+  swaggerUi,
+  generateOpenApiFile
 };

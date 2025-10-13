@@ -11,7 +11,7 @@ const { swaggerSpec, swaggerUi } = require('./src/config/swagger');
 const userRoutes = require('./src/routes/userRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // 中间件配置
 app.use(helmet()); // 安全中间件
