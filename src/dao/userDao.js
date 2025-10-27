@@ -127,6 +127,30 @@ class UserDao {
   }
 
   /**
+   * 根据用户名或邮箱查找用户（用于登录）
+   * @param {string} identifier 用户名或邮箱
+   * @returns {Promise<Object|null>} 用户对象或null
+   */
+  async findByUsernameOrEmail(identifier) {
+    try {
+      logDao('findByUsernameOrEmail', { identifier });
+      const result = await this.db.execute(
+        'SELECT * FROM users WHERE username = ? OR email = ?', 
+        [identifier, identifier]
+      );
+      // 处理不同的返回格式（演示模式 vs 真实数据库）
+      const rows = Array.isArray(result) ? result[0] : result.rows || [];
+      const user = rows[0] || null;
+      logDao('findByUsernameOrEmail', { identifier }, user);
+      return user;
+    } catch (error) {
+      logDao('findByUsernameOrEmail', { identifier }, null, error);
+      console.error('根据用户名或邮箱查找用户失败:', error);
+      throw new Error('查找用户失败');
+    }
+  }
+
+  /**
    * 根据用户名或密码查找用户（用于登录）
    * @param {string} identifier 用户名或密码
    * @returns {Promise<Object|null>} 用户对象或null

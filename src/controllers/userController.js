@@ -191,10 +191,14 @@ class UserController {
    * 用户登录
    */
   async login(req, res) {
-    logRequest(req, 'login');
+    logRequest(req,'login');
     try {
-      const { name, password } = req.body;
-      const result = await userService.loginUser(name, password);
+      // 根据请求体字段判断使用邮箱还是名字登录
+      const loginKey = req.body.email ? 'email' : 'username';
+      const loginValue = req.body[loginKey];
+      const password = req.body.password;
+      console.log("1111",req.body,loginValue)
+      const result = await userService.loginUser(loginKey,loginValue, password);
       
       res.json({
         success: true,

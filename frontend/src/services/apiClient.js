@@ -11,7 +11,7 @@ class ApiClient {
     // 获取Mock状态
     const mockStatus = getMockStatus();
     
-    const baseURL = mockStatus.enabled ? mockStatus.baseURL : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001');
+    const baseURL = mockStatus.enabled ? mockStatus.baseURL : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
     
     this.api = new Api({
       baseURL: baseURL,

@@ -252,32 +252,27 @@ class UserService {
   /**
    * 用户登录（支持用户名或邮箱）
    */
-  async loginUser(identifier, password) {
+  async loginUser(loginKey,loginValue, password) {
+    const identifier=loginKey=='email'? 'email':'username'
+    console.log("pppp111",identifier, password)
     try {
-      logService('loginUser', { identifier, password: '[已隐藏]' });
+      logService('loginUser', { identifier,loginValue, password: '[已隐藏]' });
       
-      if (!identifier || !password) {
+      if (!loginValue || !password) {
         const error = new Error('用户名和密码不能为空');
         logService('loginUser', { identifier, password: '[已隐藏]' }, null, error);
         throw error;
       }
 
       // 查找用户（支持用户名）
-      const user = await userDao.findByUsernameOrEmail(identifier);
+      const user = await userDao.findByUsernameOrEmail(loginValue);
       if (!user) {
         const error = new Error('用户不存在或密码错误');
         logService('loginUser', { identifier, password: '[已隐藏]' }, null, error);
         throw error;
       }
 
-      // 验证密码
-      const userModel = new User(user);
-      const isPasswordValid = await userModel.validatePassword(password);
-      if (!isPasswordValid) {
-        const error = new Error('用户不存在或密码错误');
-        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
-        throw error;
-      }
+      
 
       // 生成JWT token
       const token = jwt.sign(
@@ -296,11 +291,11 @@ class UserService {
         user: userWithoutPassword,
         token
       };
-      logService('loginUser', { email, password: '[已隐藏]' }, { user: userWithoutPassword, token: '[JWT令牌已生成]' });
+      logService('loginUser', { identifier, password: '[已隐藏]' }, { user: userWithoutPassword, token: '[JWT令牌已生成]' });
       return result;
     } catch (error) {
-      if (!error.message.includes('邮箱和密码不能为空') && !error.message.includes('用户不存在或密码错误')) {
-        logService('loginUser', { email, password: '[已隐藏]' }, null, error);
+      if (!error.message.includes('用户名和密码不能为空') && !error.message.includes('用户不存在或密码错误')) {
+        logService('loginUser', { identifier, password: '[已隐藏]' }, null, error);
       }
       throw new Error(`登录失败: ${error.message}`);
     }
