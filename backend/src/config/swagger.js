@@ -147,6 +147,292 @@ const swaggerDefinition = {
           }
         }
       },
+      Product: {
+        type: 'object',
+        required: ['name', 'price', 'category', 'sku'],
+        properties: {
+          id: {
+            type: 'string',
+            description: '商品ID',
+            example: 'prod_001'
+          },
+          name: {
+            type: 'string',
+            description: '商品名称',
+            minLength: 1,
+            maxLength: 200,
+            example: 'iPhone 15 Pro'
+          },
+          description: {
+            type: 'string',
+            description: '商品描述',
+            example: '最新款iPhone，配备A17 Pro芯片'
+          },
+          price: {
+            type: 'number',
+            minimum: 0,
+            description: '商品价格',
+            example: 7999.00
+          },
+          category: {
+            type: 'string',
+            description: '商品分类',
+            example: '电子产品'
+          },
+          brand: {
+            type: 'string',
+            description: '商品品牌',
+            example: 'Apple'
+          },
+          sku: {
+            type: 'string',
+            description: '商品SKU',
+            example: 'IPH15P-128GB-BLK'
+          },
+          stock: {
+            type: 'integer',
+            minimum: 0,
+            description: '库存数量',
+            example: 100
+          },
+          images: {
+            type: 'array',
+            items: {
+              type: 'string'
+            },
+            description: '商品图片URL列表',
+            example: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg']
+          },
+          status: {
+            type: 'string',
+            enum: ['active', 'inactive', 'draft'],
+            description: '商品状态',
+            example: 'active'
+          },
+          weight: {
+            type: 'number',
+            minimum: 0,
+            description: '商品重量(kg)',
+            example: 0.2
+          },
+          dimensions: {
+            type: 'object',
+            properties: {
+              length: {
+                type: 'number',
+                description: '长度(cm)'
+              },
+              width: {
+                type: 'number',
+                description: '宽度(cm)'
+              },
+              height: {
+                type: 'number',
+                description: '高度(cm)'
+              }
+            },
+            description: '商品尺寸',
+            example: { length: 14.7, width: 7.1, height: 0.8 }
+          },
+          tags: {
+            type: 'array',
+            items: {
+              type: 'string'
+            },
+            description: '商品标签',
+            example: ['热销', '新品', '推荐']
+          },
+          createdAt: {
+            type: 'string',
+            format: 'date-time',
+            description: '创建时间',
+            example: '2024-01-01T00:00:00.000Z'
+          },
+          updatedAt: {
+            type: 'string',
+            format: 'date-time',
+            description: '更新时间',
+            example: '2024-01-01T00:00:00.000Z'
+          }
+        }
+      },
+      ProductInput: {
+        type: 'object',
+        required: ['name', 'price', 'category', 'sku'],
+        properties: {
+          name: {
+            type: 'string',
+            description: '商品名称',
+            minLength: 1,
+            maxLength: 200,
+            example: 'iPhone 15 Pro'
+          },
+          description: {
+            type: 'string',
+            description: '商品描述',
+            example: '最新款iPhone，配备A17 Pro芯片'
+          },
+          price: {
+            type: 'number',
+            minimum: 0,
+            description: '商品价格',
+            example: 7999.00
+          },
+          category: {
+            type: 'string',
+            description: '商品分类',
+            example: '电子产品'
+          },
+          brand: {
+            type: 'string',
+            description: '商品品牌',
+            example: 'Apple'
+          },
+          sku: {
+            type: 'string',
+            description: '商品SKU',
+            example: 'IPH15P-128GB-BLK'
+          },
+          stock: {
+            type: 'integer',
+            minimum: 0,
+            description: '库存数量',
+            example: 100
+          },
+          images: {
+            type: 'array',
+            items: {
+              type: 'string'
+            },
+            description: '商品图片URL列表',
+            example: ['https://example.com/image1.jpg']
+          },
+          status: {
+            type: 'string',
+            enum: ['active', 'inactive', 'draft'],
+            description: '商品状态',
+            example: 'active'
+          },
+          weight: {
+            type: 'number',
+            minimum: 0,
+            description: '商品重量(kg)',
+            example: 0.2
+          },
+          dimensions: {
+            type: 'object',
+            properties: {
+              length: {
+                type: 'number',
+                description: '长度(cm)'
+              },
+              width: {
+                type: 'number',
+                description: '宽度(cm)'
+              },
+              height: {
+                type: 'number',
+                description: '高度(cm)'
+              }
+            },
+            description: '商品尺寸'
+          },
+          tags: {
+            type: 'array',
+            items: {
+              type: 'string'
+            },
+            description: '商品标签',
+            example: ['热销', '新品']
+          }
+        }
+      },
+      ProductStats: {
+        type: 'object',
+        properties: {
+          totalProducts: {
+            type: 'integer',
+            description: '商品总数',
+            example: 150
+          },
+          activeProducts: {
+            type: 'integer',
+            description: '上架商品数',
+            example: 120
+          },
+          inactiveProducts: {
+            type: 'integer',
+            description: '下架商品数',
+            example: 20
+          },
+          draftProducts: {
+            type: 'integer',
+            description: '草稿商品数',
+            example: 10
+          },
+          totalValue: {
+            type: 'number',
+            description: '商品总价值',
+            example: 1250000.00
+          },
+          averagePrice: {
+            type: 'number',
+            description: '平均价格',
+            example: 8333.33
+          },
+          lowStockCount: {
+            type: 'integer',
+            description: '低库存商品数',
+            example: 5
+          },
+          categories: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                category: {
+                  type: 'string',
+                  description: '分类名称'
+                },
+                count: {
+                  type: 'integer',
+                  description: '商品数量'
+                }
+              }
+            },
+            description: '分类统计',
+            example: [
+              { category: '电子产品', count: 50 },
+              { category: '服装', count: 30 }
+            ]
+          }
+        }
+      },
+      Pagination: {
+        type: 'object',
+        properties: {
+          page: {
+            type: 'integer',
+            description: '当前页码',
+            example: 1
+          },
+          limit: {
+            type: 'integer',
+            description: '每页数量',
+            example: 10
+          },
+          total: {
+            type: 'integer',
+            description: '总记录数',
+            example: 100
+          },
+          totalPages: {
+            type: 'integer',
+            description: '总页数',
+            example: 10
+          }
+        }
+      },
       Error: {
         type: 'object',
         properties: {
@@ -212,9 +498,10 @@ function generateOpenApiFile() {
 }
 
 // 在模块加载时自动生成OpenAPI文件
-if (process.env.NODE_ENV !== 'test') {
-  generateOpenApiFile();
-}
+// 暂时禁用自动生成以避免频繁重启
+// if (process.env.NODE_ENV !== 'test') {
+//   generateOpenApiFile();
+// }
 
 module.exports = {
   swaggerSpec,

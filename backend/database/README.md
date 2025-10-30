@@ -19,11 +19,18 @@ DEFAULT COLLATE utf8mb4_unicode_ci;
 ### 2. 创建数据表
 数据库创建完成后，执行以下SQL文件来创建用户表：
 ```sql
--- 执行此文件创建表结构和示例数据
+-- 执行此文件创建用户表结构和示例数据
 source database/create_tables.sql
 ```
 
-### 3. 配置数据库连接
+### 3. 创建商品表
+执行以下SQL文件来创建商品表：
+```sql
+-- 执行此文件创建商品表结构和示例数据
+source database/create_products_table.sql
+```
+
+### 4. 配置数据库连接
 确保 `.env` 文件中的数据库配置正确：
 ```env
 DB_HOST=localhost
@@ -33,7 +40,7 @@ DB_USER=root
 DB_PASSWORD=666306
 ```
 
-### 4. 测试数据库连接
+### 5. 测试数据库连接
 运行测试脚本验证连接：
 ```bash
 node test-db-connection.js
@@ -43,6 +50,7 @@ node test-db-connection.js
 
 - `create_database.sql` - 创建lanmaisql数据库
 - `create_tables.sql` - 创建用户表和插入示例数据
+- `create_products_table.sql` - 创建商品表和插入示例数据
 - `../test-db-connection.js` - 数据库连接测试脚本
 
 ## 注意事项

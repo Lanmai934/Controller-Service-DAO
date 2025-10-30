@@ -70,7 +70,7 @@ const apiStatus = ref(null)
 const checkApiStatus = async () => {
   loading.value = true
   try {
-    const response = await apiClient.get('/health')
+    const response = await apiClient.checkHealth()
     apiStatus.value = {
       success: true,
       message: 'API 连接成功',

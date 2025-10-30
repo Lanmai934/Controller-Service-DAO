@@ -214,13 +214,7 @@ npm run test:ui
 - 在 `.env.development` 中启用 `VITE_ENABLE_DEBUG`
 - 查看浏览器控制台的网络请求
 
-## 📚 相关链接
 
-- [Vue.js 官方文档](https://vuejs.org/)
-- [Vite 官方文档](https://vitejs.dev/)
-- [Element Plus 组件库](https://element-plus.org/)
-- [Vue Router 文档](https://router.vuejs.org/)
-- [Pinia 状态管理](https://pinia.vuejs.org/)
 
 ## 📄 许可证
 

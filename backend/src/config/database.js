@@ -17,12 +17,14 @@ class Database {
    */
   async init() {
     try {
-      // 暂时跳过数据库连接，使用模拟数据进行演示
-      console.log('📊 数据库连接池已初始化 (演示模式)');
-      this.connected = true;
+      // 启用真实数据库连接
+      console.log('🔍 数据库配置信息:');
+      console.log('  Host:', config.database.host);
+      console.log('  Port:', config.database.port);
+      console.log('  Database:', config.database.name);
+      console.log('  User:', config.database.user);
+      console.log('  Password:', config.database.password ? '***' : '(空)');
       
-      // 如果需要真实数据库连接，取消注释以下代码
-      /*
       this.pool = mysql.createPool({
         host: config.database.host,
         port: config.database.port,
@@ -34,8 +36,10 @@ class Database {
         queueLimit: 0,
         charset: 'utf8mb4'
       });
+      
+      console.log('📊 正在初始化数据库连接池...');
       await this.testConnection();
-      */
+      console.log('✅ 数据库连接池已成功初始化');
     } catch (error) {
       console.error('❌ 数据库初始化失败:', error.message);
       throw error;

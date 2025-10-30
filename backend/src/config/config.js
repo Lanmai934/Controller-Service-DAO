@@ -1,5 +1,13 @@
 require('dotenv').config();
 
+// 调试环境变量
+console.log('🔍 环境变量调试:');
+console.log('  DB_HOST:', process.env.DB_HOST);
+console.log('  DB_PORT:', process.env.DB_PORT);
+console.log('  DB_NAME:', process.env.DB_NAME);
+console.log('  DB_USER:', process.env.DB_USER);
+console.log('  DB_PASSWORD:', process.env.DB_PASSWORD ? '***' : '(未设置)');
+
 /**
  * 应用配置文件
  * 统一管理应用的各种配置项

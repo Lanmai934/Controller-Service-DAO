@@ -17,6 +17,7 @@ const API_CONFIG = {
  */
 class ApiClientWrapper {
   constructor() {
+    console.log('🔧 初始化API客户端...')
     this.api = new Api({
       baseURL: API_CONFIG.baseURL,
       timeout: API_CONFIG.timeout,
@@ -106,6 +107,56 @@ class ApiClientWrapper {
     } else {
       console.error('API Error:', errorMessage)
     }
+  }
+
+  /**
+   * 通用 HTTP 方法
+   */
+  async get(url) {
+    try {
+      const response = await this.api.instance.get(url)
+      return response
+    } catch (error) {
+      this.handleError(error)
+      throw error
+    }
+  }
+
+  async post(url, data) {
+    try {
+      const response = await this.api.instance.post(url, data)
+      return response
+    } catch (error) {
+      this.handleError(error)
+      throw error
+    }
+  }
+
+  async put(url, data) {
+    try {
+      const response = await this.api.instance.put(url, data)
+      return response
+    } catch (error) {
+      this.handleError(error)
+      throw error
+    }
+  }
+
+  async delete(url) {
+    try {
+      const response = await this.api.instance.delete(url)
+      return response
+    } catch (error) {
+      this.handleError(error)
+      throw error
+    }
+  }
+
+  /**
+   * 健康检查方法
+   */
+  async checkHealth() {
+    return this.get('/health')
   }
 
   /**

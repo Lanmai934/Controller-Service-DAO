@@ -2,13 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-require('dotenv').config();
+require('dotenv').config({ path: '.env.development' });
 
 // 导入Swagger配置
 const { swaggerSpec, swaggerUi } = require('./config/swagger');
 
 // 导入路由
 const userRoutes = require('./routes/userRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 // API路由配置
 app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
 
 // 健康检查接口
 app.get('/health', (req, res) => {
@@ -77,6 +79,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       users: '/api/users',
+      products: '/api/products',
       docs: '/api-docs'
     }
   });
