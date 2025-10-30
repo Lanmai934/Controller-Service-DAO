@@ -53,6 +53,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   }
 }));
 
+// OpenAPI JSON端点 - 供前端直接获取API规范
+app.get('/openapi.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.json(swaggerSpec);
+});
+
 // API路由配置
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
