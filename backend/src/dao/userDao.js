@@ -182,16 +182,16 @@ class UserDao {
   async create(userData) {
     try {
       logDao('create', { userData });
-      const { name, email, age, username, password, role = 'user', phone = '', address = '', status = 'active' } = userData;
+      const { name, email, age, username, password, role = 'user' } = userData;
       
       // 插入用户到数据库
       const result = await this.db.execute(
-        'INSERT INTO users (name, email, age, username, password, role, phone, address, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-        [name, email, age, username, password, role, phone, address, status]
+        'INSERT INTO users (name, email, age, username, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+        [name, email, age, username, password, role]
       );
       
       // 获取插入的用户ID
-      const insertId = result[0].insertId;
+      const insertId = result.rows.insertId;
       
       // 查询并返回新创建的用户
       const newUser = await this.findById(insertId);
@@ -214,21 +214,36 @@ class UserDao {
   async update(id, userData) {
     try {
       logDao('update', { id, userData });
-      const { name, email, age } = userData;
-      const result = await this.db.execute(
-        'UPDATE users SET name = ?, email = ?, age = ?, updated_at = NOW() WHERE id = ?',
-        [name, email, age, id]
-      );
       
-      // 在演示模式下，模拟更新的用户
-      const updatedUser = {
-        id,
-        name,
-        email,
-        age,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // 构建动态更新SQL
+      const updateFields = [];
+      const updateValues = [];
+      
+      if (userData.name !== undefined) {
+        updateFields.push('name = ?');
+        updateValues.push(userData.name);
+      }
+      if (userData.email !== undefined) {
+        updateFields.push('email = ?');
+        updateValues.push(userData.email);
+      }
+      if (userData.age !== undefined) {
+        updateFields.push('age = ?');
+        updateValues.push(userData.age);
+      }
+      
+      if (updateFields.length === 0) {
+        throw new Error('没有提供要更新的字段');
+      }
+      
+      updateFields.push('updated_at = NOW()');
+      updateValues.push(id);
+      
+      const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+      const result = await this.db.execute(sql, updateValues);
+      
+      // 查询并返回更新后的用户
+      const updatedUser = await this.findById(id);
       
       logDao('update', { id, userData }, updatedUser);
       return updatedUser;

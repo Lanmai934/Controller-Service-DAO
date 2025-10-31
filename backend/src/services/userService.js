@@ -1,41 +1,7 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const config = require('../config/config');
-
-// 模拟用户数据
-let mockUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@example.com',
-    password: '$2b$10$hash1', // 模拟加密密码
-    role: 'admin',
-    status: 'active',
-    created_at: new Date('2024-01-01'),
-    updated_at: new Date('2024-01-01')
-  },
-  {
-    id: 2,
-    username: 'user1',
-    email: 'user1@example.com',
-    password: '$2b$10$hash2',
-    role: 'user',
-    status: 'active',
-    created_at: new Date('2024-01-02'),
-    updated_at: new Date('2024-01-02')
-  },
-  {
-    id: 3,
-    username: 'user2',
-    email: 'user2@example.com',
-    password: '$2b$10$hash3',
-    role: 'user',
-    status: 'inactive',
-    created_at: new Date('2024-01-03'),
-    updated_at: new Date('2024-01-03')
-  }
-];
-
-let nextUserId = 4;
+const userDao = require('../dao/userDao');
 
 // 服务层日志函数
 const logService = (methodName, params, result = null, error = null) => {
@@ -51,7 +17,7 @@ const logService = (methodName, params, result = null, error = null) => {
   });
   const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
   
-  console.log(`\n🔧 === 服务层调试日志 ===`);
+  console.log(`\n🔧 === 用户服务层调试日志 ===`);
   console.log(`⏰ 时间: ${timestamp}.${milliseconds}`);
   console.log(`📋 服务方法: ${methodName}`);
   console.log(`📥 输入参数:`, params);
@@ -62,12 +28,12 @@ const logService = (methodName, params, result = null, error = null) => {
     console.log(`✅ 执行结果: 成功`);
     console.log(`📤 返回数据:`, typeof result === 'object' && result.password ? { ...result, password: '[已隐藏]' } : result);
   }
-  console.log(`🔧 ========================\n`);
+  console.log(`🔧 ============================\n`);
 };
 
 /**
  * 用户服务层
- * 负责处理业务逻辑，使用模拟数据进行演示
+ * 负责处理用户相关的业务逻辑，使用数据库进行数据持久化
  */
 class UserService {
   /**
@@ -76,13 +42,16 @@ class UserService {
   async getAllUsers() {
     try {
       logService('getAllUsers', {});
-      // 使用模拟数据，移除密码字段
-      const users = mockUsers.map(user => {
+      const users = await userDao.findAll();
+      
+      // 移除密码字段
+      const usersWithoutPassword = users.map(user => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
-      logService('getAllUsers', {}, users);
-      return users;
+      
+      logService('getAllUsers', {}, usersWithoutPassword);
+      return usersWithoutPassword;
     } catch (error) {
       logService('getAllUsers', {}, null, error);
       throw new Error(`获取用户列表失败: ${error.message}`);
@@ -95,14 +64,14 @@ class UserService {
   async getUserById(id) {
     try {
       logService('getUserById', { id });
+      
       if (!id) {
         const error = new Error('用户ID不能为空');
         logService('getUserById', { id }, null, error);
         throw error;
       }
 
-      // 使用模拟数据
-      const user = mockUsers.find(u => u.id == id);
+      const user = await userDao.findById(id);
       if (!user) {
         const error = new Error('用户不存在');
         logService('getUserById', { id }, null, error);
@@ -127,7 +96,7 @@ class UserService {
    */
   async createUser(userData) {
     try {
-      logService('createUser', userData);
+      logService('createUser', { ...userData, password: userData.password ? '[已隐藏]' : undefined });
       
       // 验证必填字段
       if (!userData.username || !userData.email) {
@@ -137,33 +106,48 @@ class UserService {
       }
 
       // 检查用户名是否已存在
-      const existingUser = mockUsers.find(u => u.username === userData.username || u.email === userData.email);
-      if (existingUser) {
-        const error = new Error('用户名或邮箱已存在');
+      const existingUserByUsername = await userDao.findByUsername(userData.username);
+      if (existingUserByUsername) {
+        const error = new Error('用户名已存在');
         logService('createUser', userData, null, error);
         throw error;
       }
 
-      // 创建新用户
-      const newUser = {
-        id: nextUserId++,
+      // 检查邮箱是否已存在
+      const existingUserByEmail = await userDao.findByEmail(userData.email);
+      if (existingUserByEmail) {
+        const error = new Error('邮箱已存在');
+        logService('createUser', userData, null, error);
+        throw error;
+      }
+
+      // 加密密码
+      let hashedPassword = null;
+      if (userData.password) {
+        hashedPassword = await bcrypt.hash(userData.password, 12);
+      }
+
+      // 准备用户数据
+      const newUserData = {
+        name: userData.name || userData.username,
         username: userData.username,
         email: userData.email,
-        password: userData.password || '$2b$10$defaulthash',
+        password: hashedPassword,
         role: userData.role || 'user',
-        status: userData.status || 'active',
-        created_at: new Date(),
-        updated_at: new Date()
+        age: userData.age || null
       };
 
-      mockUsers.push(newUser);
+      // 创建用户
+      const createdUser = await userDao.create(newUserData);
 
       // 返回用户信息（不包含密码）
-      const { password, ...userWithoutPassword } = newUser;
+      const { password, ...userWithoutPassword } = createdUser;
       logService('createUser', userData, userWithoutPassword);
       return userWithoutPassword;
     } catch (error) {
-      if (!error.message.includes('用户名和邮箱不能为空') && !error.message.includes('用户名或邮箱已存在')) {
+      if (!error.message.includes('用户名和邮箱不能为空') && 
+          !error.message.includes('用户名已存在') && 
+          !error.message.includes('邮箱已存在')) {
         logService('createUser', userData, null, error);
         throw new Error(`创建用户失败: ${error.message}`);
       }
@@ -176,7 +160,7 @@ class UserService {
    */
   async updateUser(id, userData) {
     try {
-      logService('updateUser', { id, userData });
+      logService('updateUser', { id, userData: { ...userData, password: userData.password ? '[已隐藏]' : undefined } });
       
       if (!id) {
         const error = new Error('用户ID不能为空');
@@ -184,30 +168,54 @@ class UserService {
         throw error;
       }
 
-      // 查找用户
-      const userIndex = mockUsers.findIndex(u => u.id == id);
-      if (userIndex === -1) {
+      // 检查用户是否存在
+      const existingUser = await userDao.findById(id);
+      if (!existingUser) {
         const error = new Error('用户不存在');
         logService('updateUser', { id, userData }, null, error);
         throw error;
       }
 
-      // 更新用户信息
-      const updatedUser = {
-        ...mockUsers[userIndex],
-        ...userData,
-        id: mockUsers[userIndex].id, // 保持ID不变
-        updated_at: new Date()
-      };
+      // 如果更新用户名，检查是否已存在
+      if (userData.username && userData.username !== existingUser.username) {
+        const userWithSameUsername = await userDao.findByUsername(userData.username);
+        if (userWithSameUsername) {
+          const error = new Error('用户名已存在');
+          logService('updateUser', { id, userData }, null, error);
+          throw error;
+        }
+      }
 
-      mockUsers[userIndex] = updatedUser;
+      // 如果更新邮箱，检查是否已存在
+      if (userData.email && userData.email !== existingUser.email) {
+        const userWithSameEmail = await userDao.findByEmail(userData.email);
+        if (userWithSameEmail) {
+          const error = new Error('邮箱已存在');
+          logService('updateUser', { id, userData }, null, error);
+          throw error;
+        }
+      }
+
+      // 准备更新数据
+      const updateData = { ...userData };
+      
+      // 如果有密码，进行加密
+      if (userData.password) {
+        updateData.password = await bcrypt.hash(userData.password, 12);
+      }
+
+      // 更新用户
+      const updatedUser = await userDao.update(id, updateData);
 
       // 返回用户信息（不包含密码）
       const { password, ...userWithoutPassword } = updatedUser;
       logService('updateUser', { id, userData }, userWithoutPassword);
       return userWithoutPassword;
     } catch (error) {
-      if (!error.message.includes('用户ID不能为空') && !error.message.includes('用户不存在')) {
+      if (!error.message.includes('用户ID不能为空') && 
+          !error.message.includes('用户不存在') &&
+          !error.message.includes('用户名已存在') &&
+          !error.message.includes('邮箱已存在')) {
         logService('updateUser', { id, userData }, null, error);
         throw new Error(`更新用户失败: ${error.message}`);
       }
@@ -228,19 +236,19 @@ class UserService {
         throw error;
       }
 
-      // 查找用户
-      const userIndex = mockUsers.findIndex(u => u.id == id);
-      if (userIndex === -1) {
+      // 检查用户是否存在
+      const existingUser = await userDao.findById(id);
+      if (!existingUser) {
         const error = new Error('用户不存在');
         logService('deleteUser', { id }, null, error);
         throw error;
       }
 
       // 删除用户
-      const deletedUser = mockUsers.splice(userIndex, 1)[0];
+      const deletedUser = await userDao.delete(id);
       
       // 返回删除的用户信息（不包含密码）
-      const { password, ...userWithoutPassword } = deletedUser;
+      const { password, ...userWithoutPassword } = existingUser;
       logService('deleteUser', { id }, userWithoutPassword);
       return userWithoutPassword;
     } catch (error) {
@@ -257,10 +265,20 @@ class UserService {
    */
   async registerUser(userData) {
     try {
-      logService('registerUser', userData);
+      logService('registerUser', { ...userData, password: userData.password ? '[已隐藏]' : undefined });
+      
+      // 验证必填字段
+      if (!userData.username || !userData.email || !userData.password) {
+        const error = new Error('用户名、邮箱和密码不能为空');
+        logService('registerUser', userData, null, error);
+        throw error;
+      }
+
       return await this.createUser(userData);
     } catch (error) {
-      logService('registerUser', userData, null, error);
+      if (!error.message.includes('用户名、邮箱和密码不能为空')) {
+        logService('registerUser', userData, null, error);
+      }
       throw error;
     }
   }
@@ -272,16 +290,32 @@ class UserService {
     try {
       logService('loginUser', { loginKey, loginValue, password: '[已隐藏]' });
       
-      // 查找用户
-      const user = mockUsers.find(u => u[loginKey] === loginValue);
+      if (!loginValue || !password) {
+        const error = new Error('登录信息不能为空');
+        logService('loginUser', { loginKey, loginValue }, null, error);
+        throw error;
+      }
+
+      // 根据登录方式查找用户
+      let user = null;
+      if (loginKey === 'email') {
+        user = await userDao.findByEmail(loginValue);
+      } else if (loginKey === 'username') {
+        user = await userDao.findByUsername(loginValue);
+      } else {
+        // 尝试用户名或邮箱登录
+        user = await userDao.findByUsernameOrEmail(loginValue);
+      }
+
       if (!user) {
         const error = new Error('用户不存在');
         logService('loginUser', { loginKey, loginValue }, null, error);
         throw error;
       }
 
-      // 简单的密码验证（实际应用中应该使用bcrypt）
-      if (user.password !== password && password !== '123456') { // 演示用的简单密码
+      // 验证密码
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
         const error = new Error('密码错误');
         logService('loginUser', { loginKey, loginValue }, null, error);
         throw error;
@@ -309,11 +343,52 @@ class UserService {
       logService('loginUser', { loginKey, loginValue }, result);
       return result;
     } catch (error) {
-      if (!error.message.includes('用户不存在') && !error.message.includes('密码错误')) {
+      if (!error.message.includes('登录信息不能为空') && 
+          !error.message.includes('用户不存在') && 
+          !error.message.includes('密码错误')) {
         logService('loginUser', { loginKey, loginValue }, null, error);
         throw new Error(`登录失败: ${error.message}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * 获取用户统计信息
+   */
+  async getUserStats() {
+    try {
+      logService('getUserStats', {});
+      
+      const totalUsers = await userDao.count();
+      const allUsers = await userDao.findAll();
+      
+      // 统计各种角色的用户数量
+      const roleStats = allUsers.reduce((stats, user) => {
+        stats[user.role] = (stats[user.role] || 0) + 1;
+        return stats;
+      }, {});
+
+      // 统计最近注册的用户（最近7天）
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentUsers = allUsers.filter(user => 
+        new Date(user.created_at) >= sevenDaysAgo
+      );
+
+      const stats = {
+        totalUsers,
+        roleStats,
+        recentRegistrations: recentUsers.length,
+        lastRegistration: allUsers.length > 0 ? 
+          Math.max(...allUsers.map(u => new Date(u.created_at).getTime())) : null
+      };
+
+      logService('getUserStats', {}, stats);
+      return stats;
+    } catch (error) {
+      logService('getUserStats', {}, null, error);
+      throw new Error(`获取用户统计信息失败: ${error.message}`);
     }
   }
 }
