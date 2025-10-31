@@ -231,6 +231,18 @@ class UserDao {
         updateFields.push('age = ?');
         updateValues.push(userData.age);
       }
+      if (userData.username !== undefined) {
+        updateFields.push('username = ?');
+        updateValues.push(userData.username);
+      }
+      if (userData.password !== undefined) {
+        updateFields.push('password = ?');
+        updateValues.push(userData.password);
+      }
+      if (userData.role !== undefined) {
+        updateFields.push('role = ?');
+        updateValues.push(userData.role);
+      }
       
       if (updateFields.length === 0) {
         throw new Error('没有提供要更新的字段');
