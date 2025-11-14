@@ -287,7 +287,7 @@ class UserService {
    * 用户登录
    */
   async loginUser(loginKey, loginValue, password) {
-    try {
+
       logService('loginUser', { loginKey, loginValue, password: '[已隐藏]' });
       
       if (!loginValue || !password) {
@@ -314,7 +314,9 @@ class UserService {
       }
 
       // 验证密码
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      // 直接比对明文密码（已去掉加密）
+      const isPasswordValid = password === user.password;
+      console.log("pppp",isPasswordValid)
       if (!isPasswordValid) {
         const error = new Error('密码错误');
         logService('loginUser', { loginKey, loginValue }, null, error);
@@ -342,15 +344,7 @@ class UserService {
       
       logService('loginUser', { loginKey, loginValue }, result);
       return result;
-    } catch (error) {
-      if (!error.message.includes('登录信息不能为空') && 
-          !error.message.includes('用户不存在') && 
-          !error.message.includes('密码错误')) {
-        logService('loginUser', { loginKey, loginValue }, null, error);
-        throw new Error(`登录失败: ${error.message}`);
-      }
-      throw error;
-    }
+
   }
 
   /**
